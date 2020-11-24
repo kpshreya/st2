@@ -19,6 +19,8 @@ import os
 import struct
 import subprocess
 import sys
+import time
+import datetime
 
 from st2client.utils.color import format_status
 
@@ -43,12 +45,16 @@ def get_terminal_size_columns(default=DEFAULT_TERMINAL_SIZE_COLUMNS):
     :rtype: ``int``
     :return: columns
     """
+    print("ANIL In get_terminal_size_columns")
+    sys.stdout.flush()
     # 1. Try COLUMNS environment variable first like in upstream Python 3 method -
     # https://github.com/python/cpython/blob/master/Lib/shutil.py#L1203
     # This way it's consistent with upstream implementation. In the past, our implementation
     # checked those variables at the end as a fall back.
     try:
         columns = os.environ['COLUMNS']
+        print("ANIL in try - os.environ")
+        sys.stdout.flush()
         return int(columns)
     except (KeyError, ValueError):
         pass
@@ -57,19 +63,26 @@ def get_terminal_size_columns(default=DEFAULT_TERMINAL_SIZE_COLUMNS):
         import fcntl
         import termios
         # Return a tuple (lines, columns)
+        ts = time.time()
+        st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        print("ANIL in ioctl_GWINSZ"+str(st))
+        sys.stdout.flush()
+        #size = struct.unpack('2h', fcntl.ioctl(fd, termios.TIOCGWINSZ, '    '))
         return struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
-
+        # return struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, b"\x00" * 4))
+    
     # 2. try stdin, stdout, stderr
     for fd in (0, 1, 2):
         try:
             return ioctl_GWINSZ(fd)[1]
         except Exception:
             pass
-
     # 3. try os.ctermid()
     try:
         fd = os.open(os.ctermid(), os.O_RDONLY)
         try:
+            print("ANIL in os.ctermid")
+            sys.stdout.flush()
             return ioctl_GWINSZ(fd)[1]
         finally:
             os.close(fd)
@@ -83,12 +96,17 @@ def get_terminal_size_columns(default=DEFAULT_TERMINAL_SIZE_COLUMNS):
                                    stdout=subprocess.PIPE,
                                    stderr=open(os.devnull, 'w'))
         result = process.communicate()
+        print("ANIL in try stty size")
+        sys.stdout.flush()
         if process.returncode == 0:
             return tuple(int(x) for x in result[0].split())[1]
     except Exception:
         pass
 
     # 5. return default fallback value
+    print("ANIL in default")
+    sys.stdout.flush()
+    sys.stdout.flush()
     return default
 
 
